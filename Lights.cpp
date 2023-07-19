@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2022, Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2023, Qualcomm Innovation Center, Inc. All rights reserved.
  * Not a Contribution.
  *
  * Copyright (C) 2019 The Android Open Source Project
@@ -231,15 +231,18 @@ int Lights::setRgbLedsParams(const HwLightState& state) {
 
     switch (state.flashMode) {
     case FlashMode::HARDWARE:
-        if (!!red)
-            rc = setLedBreathParam(LED_RED, breath);
-        if (!!green)
-            rc |= setLedBreathParam(LED_GREEN, breath);
-        if (!!blue)
-            rc |= setLedBreathParam(LED_BLUE, breath);
-        /* Fallback to blinking if breath is not supported */
-        if (rc == 0)
-            break;
+        if (mPpgDetected == PPG_BREATH) {
+            if (!!red)
+                rc = setLedBreathParam(LED_RED, breath);
+            if (!!green)
+                rc |= setLedBreathParam(LED_GREEN, breath);
+            if (!!blue)
+                rc |= setLedBreathParam(LED_BLUE, breath);
+            /* Fallback to blinking if breath is not supported */
+            if (rc == 0)
+                break;
+        }
+        FALLTHROUGH_INTENDED;
     case FlashMode::TIMED:
         if (!!red)
             rc = setLedDelayParams(LED_RED, state.flashOnMs, state.flashOffMs);
@@ -301,6 +304,7 @@ ndk::ScopedAStatus Lights::getLights(std::vector<HwLight>* lights) {
     }
 
     mLedDetected = false;
+    mPpgDetected = PPG_NONE;
     snprintf(file, sizeof(file), "/sys/class/leds/%s/brightness", rgb_led_name[LED_RED]);
     fd = open(file, O_RDONLY);
     if (fd >= 0) {
@@ -308,6 +312,14 @@ ndk::ScopedAStatus Lights::getLights(std::vector<HwLight>* lights) {
        close(fd);
     } else {
        ALOGE("Couldn't open %s", file);
+    }
+
+    /* Check if PPG is available */
+    snprintf(file, sizeof(file), "/sys/class/leds/%s/breath", rgb_led_name[LED_RED]);
+    fd = open(file, O_RDONLY);
+    if (fd >= 0) {
+       mPpgDetected = PPG_BREATH;
+       close(fd);
     }
 
     return ndk::ScopedAStatus::ok();

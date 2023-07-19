@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023, Qualcomm Innovation Center, Inc. All rights reserved.
  * Not a contribution.
  *
  * Copyright (C) 2020, The Android Open Source Project
@@ -80,6 +81,10 @@ class Lights : public BnLights {
       int setRgbLedsParams(const HwLightState& state);
       bool mBatteryNotification;
       bool mLedDetected;
+      enum mPpgModeType {
+        PPG_NONE = 1,
+        PPG_BREATH,
+      } mPpgDetected;
 };
 
 }  // namespace light
