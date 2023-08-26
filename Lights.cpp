@@ -138,6 +138,41 @@ static int setLedBreathParam(enum rgb_led led, int breath) {
     return rc;
 }
 
+static int setLedPattern(enum rgb_led led) {
+    char file[48];
+    char const pattern[264] = "0 100 0 0 26 100 26 0 51 100 51 0 77 100 77 0 102 100 102 0 128 100 128 0 153 100 153 0 179 100 179 0 204 100 204 0 230 100 230 0 255 100 255 0 230 100 230 0 204 100 204 0 179 100 179 0 153 100 153 0 128 100 128 0 102 100 102 0 77 100 77 0 51 100 51 0 26 100 26 0";
+    int rc, retries = 20;
+
+    snprintf(file, sizeof(file), "/sys/class/leds/%s/trigger", rgb_led_name[led]);
+    rc = write_str_to_file(file, "pattern");
+    if (rc < 0) {
+        ALOGD("%s LED does not support pattern trigger\n", rgb_led_name[led]);
+        return rc;
+    }
+
+    while(retries--) {
+        ALOGD("retry %d set repeat and hw_pattern\n", retries);
+        usleep(2000);
+
+        snprintf(file, sizeof(file), "/sys/class/leds/%s/repeat", rgb_led_name[led]);
+        rc = write_int_to_file(file, -1);
+        if (rc < 0)
+            continue;
+
+        snprintf(file, sizeof(file), "/sys/class/leds/%s/hw_pattern", rgb_led_name[led]);
+        rc = write_str_to_file(file, pattern);
+        if (!rc)
+            break;
+    }
+
+    if (rc < 0) {
+        ALOGE("Error writing to repeat/hw_pattern for %s LED\n", rgb_led_name[led]);
+        return rc;
+    }
+
+    return 0;
+}
+
 static int setLedDelayParams(enum rgb_led led, int flashOnMs, int flashOffMs) {
     char file_on[48];
     char file_off[48];
@@ -193,6 +228,27 @@ static int setLedBrightness(enum rgb_led led, int brightness) {
 
     return rc;
 }
+
+static bool isPatternTrigger(const char *path) {
+    char buf[300] = {};
+    int fd, ret;
+
+    fd = open(path, O_RDONLY);
+    if (fd < 0) {
+        ALOGE("Couldn't open %s", path);
+        return false;
+    }
+
+    ret = TEMP_FAILURE_RETRY(read(fd, buf, sizeof(buf)));
+    close(fd);
+
+    if (ret < 0) {
+        ALOGE("Couldn't read %s errno=%d", path, errno);
+        return false;
+    }
+
+    return strstr(buf, "pattern");
+}
 } // namespace anonymous
 
 namespace aidl {
@@ -239,6 +295,16 @@ int Lights::setRgbLedsParams(const HwLightState& state) {
             if (!!blue)
                 rc |= setLedBreathParam(LED_BLUE, breath);
             /* Fallback to blinking if breath is not supported */
+            if (rc == 0)
+                break;
+        } else if (mPpgDetected == PPG_PATTERN) {
+            if (!!red)
+                rc = setLedPattern(LED_RED);
+            if (!!green)
+                rc |= setLedPattern(LED_GREEN);
+            if (!!blue)
+                rc |= setLedPattern(LED_BLUE);
+            /* Fallback to blinking if pattern trigger is not supported */
             if (rc == 0)
                 break;
         }
@@ -314,12 +380,16 @@ ndk::ScopedAStatus Lights::getLights(std::vector<HwLight>* lights) {
        ALOGE("Couldn't open %s", file);
     }
 
-    /* Check if PPG is available */
+    /* Check which PPG mode is available */
     snprintf(file, sizeof(file), "/sys/class/leds/%s/breath", rgb_led_name[LED_RED]);
     fd = open(file, O_RDONLY);
     if (fd >= 0) {
        mPpgDetected = PPG_BREATH;
        close(fd);
+    } else {
+        snprintf(file, sizeof(file), "/sys/class/leds/%s/trigger", rgb_led_name[LED_RED]);
+        if (isPatternTrigger(file))
+            mPpgDetected = PPG_PATTERN;
     }
 
     return ndk::ScopedAStatus::ok();
