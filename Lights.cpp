@@ -21,7 +21,7 @@
 /*
  * Changes from Qualcomm Innovation Center are provided under the following license:
  *
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted (subject to the limitations in the disclaimer
@@ -336,15 +336,16 @@ int Lights::setRgbLedsParams(const HwLightState& state) {
 }
 
 ndk::ScopedAStatus Lights::setLightState(int id, const HwLightState& state) {
-    /* For QMAA compliance, return OK even if leds device doesn't exist */
-    if (!mLedDetected) {
-        ALOGE("Tri Leds device doesn't exist");
-        return ndk::ScopedAStatus::ok();
-    }
 
     if (id < 0 || id >= mAvailableLights.size()) {
         ALOGE("Invalid Light id : %d", id);
         return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+    }
+
+    /* For QMAA compliance, return OK even if leds device doesn't exist */
+    if (!mLedDetected) {
+        ALOGE("Tri Leds device doesn't exist");
+        return ndk::ScopedAStatus::ok();
     }
 
     HwLight const& light = mAvailableLights[id];
