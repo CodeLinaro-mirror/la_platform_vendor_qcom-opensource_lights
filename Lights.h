@@ -84,6 +84,7 @@ class Lights : public BnLights {
       enum mPpgModeType {
         PPG_NONE = 1,
         PPG_BREATH,
+        PPG_PATTERN,
       } mPpgDetected;
 };
 
