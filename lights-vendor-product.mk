@@ -11,5 +11,9 @@ ifeq ($(PLATFORM_VERSION), $(filter $(PLATFORM_VERSION),T 13))
 endif
 
 ifeq ($(PLATFORM_VERSION), $(filter $(PLATFORM_VERSION),U 14))
-  $(call soong_config_set, lights, lighttargets, lightaidlV2target)
+   ifeq ($(TARGET_BOARD_PLATFORM), anorak)
+     $(call soong_config_set, lights, lighttargets, lightaidlV1target)
+   else
+     $(call soong_config_set, lights, lighttargets, lightaidlV2target)
+   endif
 endif
