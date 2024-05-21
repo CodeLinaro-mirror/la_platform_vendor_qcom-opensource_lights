@@ -16,3 +16,29 @@ cc_binary {
         "main.cpp",
     ],
 }
+
+cc_fuzz {
+    name: "vendor.qti.hardware.lights-service.aidl_fuzzer",
+    vendor: true,
+
+    shared_libs: [
+        "liblog",
+        "libutils",
+        "libcutils",
+        "libbinder",
+        "libbinder_ndk",
+        "libhardware",
+        "android.hardware.light-V2-ndk",
+    ],
+
+    static_libs: [
+        "libbinder_random_parcel",
+    ],
+
+    srcs: ["fuzzer.cpp", "Lights.cpp"],
+
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
+}
