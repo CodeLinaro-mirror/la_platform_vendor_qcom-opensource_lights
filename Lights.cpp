@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2023, Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2024, Qualcomm Innovation Center, Inc. All rights reserved.
  * Not a Contribution.
  *
  * Copyright (C) 2019 The Android Open Source Project
@@ -247,7 +247,7 @@ static bool isPatternTrigger(const char *path) {
         return false;
     }
 
-    return strstr(buf, "pattern");
+    return strstr(buf, "pattern") ? true : false;
 }
 } // namespace anonymous
 
