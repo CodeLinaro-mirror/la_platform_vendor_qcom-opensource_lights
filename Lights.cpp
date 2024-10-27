@@ -239,13 +239,15 @@ static bool isPatternTrigger(const char *path) {
         return false;
     }
 
-    ret = TEMP_FAILURE_RETRY(read(fd, buf, sizeof(buf)));
+    ret = TEMP_FAILURE_RETRY(read(fd, buf, sizeof(buf) - 1));
     close(fd);
 
     if (ret < 0) {
         ALOGE("Couldn't read %s errno=%d", path, errno);
         return false;
     }
+
+    buf[ret] = '\0';
 
     return strstr(buf, "pattern") ? true : false;
 }
