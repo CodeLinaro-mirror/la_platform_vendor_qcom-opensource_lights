@@ -72,6 +72,10 @@
 
 namespace {
 
+bool mRedLedPresent;
+bool mGreenLedPresent;
+bool mBlueLedPresent;
+
 enum rgb_led {
     LED_RED,
     LED_GREEN,
@@ -130,6 +134,23 @@ static int setLedBreathParam(enum rgb_led led, int breath) {
     char file[48];
     int rc;
 
+    switch (led) {
+    case LED_RED:
+        if (!mRedLedPresent)
+            return 0;
+        break;
+    case LED_GREEN:
+        if (!mGreenLedPresent)
+            return 0;
+        break;
+    case LED_BLUE:
+        if (!mBlueLedPresent)
+            return 0;
+        break;
+    default:
+        return -ENOENT;
+    }
+
     snprintf(file, sizeof(file),"/sys/class/leds/%s/breath", rgb_led_name[led]);
     rc = write_int_to_file(file, breath);
     if (rc < 0)
@@ -143,6 +164,23 @@ static int setLedDelayParams(enum rgb_led led, int flashOnMs, int flashOffMs) {
     char file_off[48];
     int rc;
     int retries = 20;
+
+    switch (led) {
+    case LED_RED:
+        if (!mRedLedPresent)
+            return 0;
+        break;
+    case LED_GREEN:
+        if (!mGreenLedPresent)
+            return 0;
+        break;
+    case LED_BLUE:
+        if (!mBlueLedPresent)
+            return 0;
+        break;
+    default:
+        return -ENOENT;
+    }
 
     snprintf(file_on, sizeof(file_on), "/sys/class/leds/%s/trigger", rgb_led_name[led]);
     rc = write_str_to_file(file_on, "timer");
@@ -178,6 +216,23 @@ static int setLedDelayParams(enum rgb_led led, int flashOnMs, int flashOffMs) {
 static int setLedBrightness(enum rgb_led led, int brightness) {
     int rc;
     char file[48];
+
+    switch (led) {
+    case LED_RED:
+        if (!mRedLedPresent)
+            return 0;
+        break;
+    case LED_GREEN:
+        if (!mGreenLedPresent)
+            return 0;
+        break;
+    case LED_BLUE:
+        if (!mBlueLedPresent)
+            return 0;
+        break;
+    default:
+        return -ENOENT;
+    }
 
     snprintf(file, sizeof(file), "/sys/class/leds/%s/trigger", rgb_led_name[led]);
     rc = write_str_to_file(file, "none");
@@ -302,14 +357,37 @@ ndk::ScopedAStatus Lights::getLights(std::vector<HwLight>* lights) {
     }
 
     mLedDetected = false;
+    mRedLedPresent = false;
+    mGreenLedPresent = false;
+    mBlueLedPresent = false;
     snprintf(file, sizeof(file), "/sys/class/leds/%s/brightness", rgb_led_name[LED_RED]);
     fd = open(file, O_RDONLY);
     if (fd >= 0) {
-       mLedDetected = true;
+       mRedLedPresent = true;
        close(fd);
     } else {
-       ALOGE("Couldn't open %s", file);
+       ALOGD("Couldn't open %s", file);
     }
+
+    snprintf(file, sizeof(file), "/sys/class/leds/%s/brightness", rgb_led_name[LED_GREEN]);
+    fd = open(file, O_RDONLY);
+    if (fd >= 0) {
+       mGreenLedPresent = true;
+       close(fd);
+    } else {
+       ALOGD("Couldn't open %s", file);
+    }
+
+    snprintf(file, sizeof(file), "/sys/class/leds/%s/brightness", rgb_led_name[LED_BLUE]);
+    fd = open(file, O_RDONLY);
+    if (fd >= 0) {
+       mBlueLedPresent = true;
+       close(fd);
+    } else {
+       ALOGD("Couldn't open %s", file);
+    }
+
+    mLedDetected = (mRedLedPresent || mGreenLedPresent || mBlueLedPresent);
 
     return ndk::ScopedAStatus::ok();
 }
